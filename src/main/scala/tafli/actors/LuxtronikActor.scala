@@ -6,8 +6,7 @@ import java.net.Socket
 import akka.actor.{Actor, ActorLogging, Props}
 import tafli.Configuration
 import tafli.actors.LuxtronikActor.{ReadCalculation, ReadParameters, ReadVisibility}
-
-import scala.collection.immutable
+import tafli.models.HeatingData._
 
 object LuxtronikActor {
   def props = Props(new LuxtronikActor)
@@ -25,39 +24,49 @@ class LuxtronikActor extends Actor with ActorLogging {
 
   override def postStop(): Unit = log.info("LuxtronikActor stopped")
 
-  log.info(s"Connection to [${Configuration.ip}:${Configuration.port}]...")
+  var parameters: Map[Int, Int] = Map()
+  var calculations: Map[Int, Int] = Map()
+  var visibilities: Map[Int, Int] = Map()
+
+  log.info(s"Connecting to [${Configuration.ip}:${Configuration.port}]...")
   val socket = new Socket(Configuration.ip, Configuration.port)
   val dataIn = new DataInputStream(socket.getInputStream)
   val dataOut = new DataOutputStream(socket.getOutputStream)
-  log.info("Connected!")
+
+  import scala.concurrent.ExecutionContext.Implicits.global
+  import scala.concurrent.duration._
+  RootActor.system.scheduler.schedule(0 seconds, Configuration.updateInterval, self, ReadCalculation)
 
   override def receive: Receive = {
     case ReadParameters => {
-      val params = readData(3003)
-
-      params.zipWithIndex.foreach { param =>
-        log.debug(s"${param._2} => [${param._1}]")
-      }
+      parameters = readData(3003)
     }
 
     case ReadCalculation => {
-      val data = readData(3004)
+      calculations = readData(3004)
 
-      data.zipWithIndex.foreach { param =>
-        log.debug(s"${param._2} => [${param._1}]")
+      if(log.isDebugEnabled) {
+        calculations.toSeq.sortBy(_._1).foreach(p =>
+          log.debug(s"${p._1} -> ${p._2}")
+        )
       }
+
+      log.info(s"Vorlauftemp. Heizkreis: [${calculations(HEATING_CIRCUIT_FLOW) / 10.0}]°C")
+      log.info(s"Rücklauftemp. Heizkreis Ist: [${calculations(HEATING_CIRCUIT_RETURN_CURRENT) / 10.0}]°C")
+      log.info(s"Rücklauftemp. Heizkreis Soll: [${calculations(HEATING_CIRCUIT_RETURN_TARGET) / 10.0}]°C")
+      log.info(s"Warmwasser ist: [${calculations(SERVICE_WATER_CURRENT) / 10.0}]°C")
+      log.info(s"Warmwasser soll: [${calculations(SERVICE_WATER_TARGET) / 10.0}]°C")
+      log.info(s"Aussentemperatur: [${calculations(TEMP_AMBIENT) / 10.0}]°C")
+      log.info(s"Betriebszustand: [${calculations(OPERATING_STATUS)}]")
+      log.info(s"Betriebsstunden Wärmepumpe: [${calculations(OPERATION_HOURS_HEATING_PUMP) / 3600.0}]")
     }
 
     case ReadVisibility => {
-      val data = readData(3005)
-
-      data.zipWithIndex.foreach { param =>
-        log.debug(s"${param._2} => [${param._1}]")
-      }
+      visibilities = readData(3005)
     }
   }
 
-  def readData(id: Int) = {
+  private def readData(id: Int): Map[Int, Int] = {
     log.debug("Flushing input...")
     while (dataIn.available > 0) dataIn.readByte
 
@@ -66,15 +75,22 @@ class LuxtronikActor extends Actor with ActorLogging {
     dataOut.writeInt(0)
     dataOut.flush()
 
-    if (dataIn.readInt != id) log.debug("Didn't got correct reply...")
-
-    if(id == 3004) dataIn.readInt
+    if (dataIn.readInt != id) {
+      log.debug("Didn't got correct reply...")
+    } else if (id == 3004) {
+      // Reading status sent first when reading calculations
+      dataIn.readInt
+    }
 
     val len = dataIn.readInt
-    if (len <= 0) log.info("No data found!") else log.debug(s"Got data #[$len]")
+    if (len <= 0) {
+      log.info("No data found!")
+    } else {
+      log.debug(s"Got data #[$len]")
+    }
 
-    val data = (1 to len).map(index => dataIn.readInt)
+    val data = (0 until len).map(_ -> dataIn.readInt)
 
-    data
+    data.toMap
   }
 }
