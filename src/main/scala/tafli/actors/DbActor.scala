@@ -1,6 +1,10 @@
 package tafli.actors
 
+import java.time.ZonedDateTime
+
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import tafli.actors.DbActor.SaveCalculatedData
+import tafli.database.HeatingDAO
 import tafli.models.HeatingData
 
 object DbActor {
@@ -10,22 +14,29 @@ object DbActor {
 
   case class SaveCalculatedData(data: HeatingData)
 
-
 }
 
 class DbActor extends Actor with ActorLogging {
 
   override def receive: Receive = {
-//    case SaveStationData(id, data) =>
-//      HeatingData.create(id,
-//        stationType = 0,
-//        temperature = data.temperature / 10.0,
-//        humidity = data.humidity,
-//        windSpeed = Option(data.windSpeed / 10.0),
-//        gustSpeed = Option(data.gustSpeed / 10.0),
-//        rain = Option(data.rain / 10.0),
-//        windDirection = Option(data.windDirection),
-//        batteryLow = Option(data.batteryLow))
-    case _ =>
+    case SaveCalculatedData(data) =>
+      log.debug("Saving heating data ...")
+
+      HeatingDAO.create(
+        data.circuitFlow,
+        data.circuitReturnCurrent,
+        data.circuitReturnTarget,
+        data.tempAmbient,
+        data.serviceWaterTarget,
+        data.serviceWaterCurrent,
+        data.operationTimePump,
+        data.operationTimeHeating,
+        data.operationTimeServiceWater,
+        data.operationSince,
+        data.operationStatus,
+        ZonedDateTime.now
+      )
+
+    case _ => log.warning("Received unknown message ...")
   }
 }

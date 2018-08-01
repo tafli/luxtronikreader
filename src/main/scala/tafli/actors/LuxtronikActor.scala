@@ -5,7 +5,9 @@ import java.net.Socket
 
 import akka.actor.{Actor, ActorLogging, Props}
 import tafli.Configuration
+import tafli.actors.DbActor.SaveCalculatedData
 import tafli.actors.LuxtronikActor.{ReadCalculation, ReadParameters, ReadVisibility}
+import tafli.models.HeatingData
 import tafli.models.HeatingData._
 
 object LuxtronikActor {
@@ -35,6 +37,7 @@ class LuxtronikActor extends Actor with ActorLogging {
 
   import scala.concurrent.ExecutionContext.Implicits.global
   import scala.concurrent.duration._
+
   RootActor.system.scheduler.schedule(0 seconds, Configuration.updateInterval, self, ReadCalculation)
 
   override def receive: Receive = {
@@ -45,20 +48,38 @@ class LuxtronikActor extends Actor with ActorLogging {
     case ReadCalculation => {
       calculations = readData(3004)
 
-      if(log.isDebugEnabled) {
+      if (log.isDebugEnabled) {
         calculations.toSeq.sortBy(_._1).foreach(p =>
           log.debug(s"${p._1} -> ${p._2}")
         )
+
+        log.debug("\n---------\n")
+
+        log.debug(s"Vorlauftemp. Heizkreis: [${calculations(HEATING_CIRCUIT_FLOW) / 10.0}]°C")
+        log.debug(s"Rücklauftemp. Heizkreis Ist: [${calculations(HEATING_CIRCUIT_RETURN_CURRENT) / 10.0}]°C")
+        log.debug(s"Rücklauftemp. Heizkreis Soll: [${calculations(HEATING_CIRCUIT_RETURN_TARGET) / 10.0}]°C")
+        log.debug(s"Warmwasser ist: [${calculations(SERVICE_WATER_CURRENT) / 10.0}]°C")
+        log.debug(s"Warmwasser soll: [${calculations(SERVICE_WATER_TARGET) / 10.0}]°C")
+        log.debug(s"Aussentemperatur: [${calculations(TEMP_AMBIENT) / 10.0}]°C")
+        log.debug(s"Betriebszustand: [${calculations(OPERATING_STATUS)}]")
+        log.debug(s"Betriebsstunden Wärmepumpe: [${calculations(OPERATION_TIME_HEATING_PUMP) / 3600.0}]")
       }
 
-      log.info(s"Vorlauftemp. Heizkreis: [${calculations(HEATING_CIRCUIT_FLOW) / 10.0}]°C")
-      log.info(s"Rücklauftemp. Heizkreis Ist: [${calculations(HEATING_CIRCUIT_RETURN_CURRENT) / 10.0}]°C")
-      log.info(s"Rücklauftemp. Heizkreis Soll: [${calculations(HEATING_CIRCUIT_RETURN_TARGET) / 10.0}]°C")
-      log.info(s"Warmwasser ist: [${calculations(SERVICE_WATER_CURRENT) / 10.0}]°C")
-      log.info(s"Warmwasser soll: [${calculations(SERVICE_WATER_TARGET) / 10.0}]°C")
-      log.info(s"Aussentemperatur: [${calculations(TEMP_AMBIENT) / 10.0}]°C")
-      log.info(s"Betriebszustand: [${calculations(OPERATING_STATUS)}]")
-      log.info(s"Betriebsstunden Wärmepumpe: [${calculations(OPERATION_HOURS_HEATING_PUMP) / 3600.0}]")
+      val heatingData = HeatingData(
+        calculations(HEATING_CIRCUIT_FLOW) / 10.0,
+        calculations(HEATING_CIRCUIT_RETURN_CURRENT) / 10.0,
+        calculations(HEATING_CIRCUIT_RETURN_TARGET) / 10.0,
+        calculations(TEMP_AMBIENT) / 10.0,
+        calculations(SERVICE_WATER_CURRENT) / 10.0,
+        calculations(SERVICE_WATER_TARGET) / 10.0,
+        calculations(OPERATION_TIME_HEATING_PUMP),
+        calculations(OPERATION_TIME_HEATING),
+        calculations(OPERATION_TIME_SERVICE_WATER),
+        calculations(OPERATING_SINCE),
+        calculations(OPERATING_STATUS)
+      )
+
+      DbActor.actor ! SaveCalculatedData(heatingData)
     }
 
     case ReadVisibility => {
