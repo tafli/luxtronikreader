@@ -4,8 +4,8 @@ CREATE TABLE `heating` (
   `circuit_return_current` double NOT NULL,
   `circuit_return_target` double NOT NULL,
   `temp_ambient` double NOT NULL,
-  `service_water_target` double NOT NULL,
   `service_water_current` double NOT NULL,
+  `service_water_target` double NOT NULL,
   `operation_time_pump` int(11) NOT NULL,
   `operation_time_heating` int(11) NOT NULL,
   `operation_time_service_water` int(11) NOT NULL,
@@ -13,4 +13,4 @@ CREATE TABLE `heating` (
   `operation_status` int(11) NOT NULL,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`,`created_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 PACK_KEYS=1
+)

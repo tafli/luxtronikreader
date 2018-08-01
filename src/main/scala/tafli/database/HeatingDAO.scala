@@ -3,6 +3,7 @@ package tafli.database
 import java.time.ZonedDateTime
 
 import scalikejdbc._
+import tafli.Configuration
 
 case class HeatingDAO(
   id: Int,
@@ -10,8 +11,8 @@ case class HeatingDAO(
   circuitReturnCurrent: Double,
   circuitReturnTarget: Double,
   tempAmbient: Double,
-  serviceWaterTarget: Double,
   serviceWaterCurrent: Double,
+  serviceWaterTarget: Double,
   operationTimePump: Int,
   operationTimeHeating: Int,
   operationTimeServiceWater: Int,
@@ -28,11 +29,11 @@ case class HeatingDAO(
 
 object HeatingDAO extends SQLSyntaxSupport[HeatingDAO] {
 
-  override val schemaName = Some("thebossc_weather")
+  override val schemaName = Some(Configuration.dbSchema)
 
-  override val tableName = "heating"
+  override val tableName = Configuration.dbTable
 
-  override val columns = Seq("id", "circuit_flow", "circuit_return_current", "circuit_return_target", "temp_ambient", "service_water_target", "service_water_current", "operation_time_pump", "operation_time_heating", "operation_time_service_water", "operation_since", "operation_status", "created_at")
+  override val columns = Seq("id", "circuit_flow", "circuit_return_current", "circuit_return_target", "temp_ambient", "service_water_current", "service_water_target", "operation_time_pump", "operation_time_heating", "operation_time_service_water", "operation_since", "operation_status", "created_at")
 
   def apply(h: SyntaxProvider[HeatingDAO])(rs: WrappedResultSet): HeatingDAO = apply(h.resultName)(rs)
   def apply(h: ResultName[HeatingDAO])(rs: WrappedResultSet): HeatingDAO = new HeatingDAO(
@@ -41,8 +42,8 @@ object HeatingDAO extends SQLSyntaxSupport[HeatingDAO] {
     circuitReturnCurrent = rs.get(h.circuitReturnCurrent),
     circuitReturnTarget = rs.get(h.circuitReturnTarget),
     tempAmbient = rs.get(h.tempAmbient),
-    serviceWaterTarget = rs.get(h.serviceWaterTarget),
     serviceWaterCurrent = rs.get(h.serviceWaterCurrent),
+    serviceWaterTarget = rs.get(h.serviceWaterTarget),
     operationTimePump = rs.get(h.operationTimePump),
     operationTimeHeating = rs.get(h.operationTimeHeating),
     operationTimeServiceWater = rs.get(h.operationTimeServiceWater),
@@ -92,8 +93,8 @@ object HeatingDAO extends SQLSyntaxSupport[HeatingDAO] {
     circuitReturnCurrent: Double,
     circuitReturnTarget: Double,
     tempAmbient: Double,
-    serviceWaterTarget: Double,
     serviceWaterCurrent: Double,
+    serviceWaterTarget: Double,
     operationTimePump: Int,
     operationTimeHeating: Int,
     operationTimeServiceWater: Int,
@@ -106,8 +107,8 @@ object HeatingDAO extends SQLSyntaxSupport[HeatingDAO] {
         column.circuitReturnCurrent -> circuitReturnCurrent,
         column.circuitReturnTarget -> circuitReturnTarget,
         column.tempAmbient -> tempAmbient,
-        column.serviceWaterTarget -> serviceWaterTarget,
         column.serviceWaterCurrent -> serviceWaterCurrent,
+        column.serviceWaterTarget -> serviceWaterTarget,
         column.operationTimePump -> operationTimePump,
         column.operationTimeHeating -> operationTimeHeating,
         column.operationTimeServiceWater -> operationTimeServiceWater,
@@ -123,8 +124,8 @@ object HeatingDAO extends SQLSyntaxSupport[HeatingDAO] {
       circuitReturnCurrent = circuitReturnCurrent,
       circuitReturnTarget = circuitReturnTarget,
       tempAmbient = tempAmbient,
-      serviceWaterTarget = serviceWaterTarget,
       serviceWaterCurrent = serviceWaterCurrent,
+      serviceWaterTarget = serviceWaterTarget,
       operationTimePump = operationTimePump,
       operationTimeHeating = operationTimeHeating,
       operationTimeServiceWater = operationTimeServiceWater,
@@ -140,8 +141,8 @@ object HeatingDAO extends SQLSyntaxSupport[HeatingDAO] {
         'circuitReturnCurrent -> entity.circuitReturnCurrent,
         'circuitReturnTarget -> entity.circuitReturnTarget,
         'tempAmbient -> entity.tempAmbient,
-        'serviceWaterTarget -> entity.serviceWaterTarget,
         'serviceWaterCurrent -> entity.serviceWaterCurrent,
+        'serviceWaterTarget -> entity.serviceWaterTarget,
         'operationTimePump -> entity.operationTimePump,
         'operationTimeHeating -> entity.operationTimeHeating,
         'operationTimeServiceWater -> entity.operationTimeServiceWater,
@@ -153,8 +154,8 @@ object HeatingDAO extends SQLSyntaxSupport[HeatingDAO] {
       circuit_return_current,
       circuit_return_target,
       temp_ambient,
-      service_water_target,
       service_water_current,
+      service_water_target,
       operation_time_pump,
       operation_time_heating,
       operation_time_service_water,
@@ -166,8 +167,8 @@ object HeatingDAO extends SQLSyntaxSupport[HeatingDAO] {
       {circuitReturnCurrent},
       {circuitReturnTarget},
       {tempAmbient},
-      {serviceWaterTarget},
       {serviceWaterCurrent},
+      {serviceWaterTarget},
       {operationTimePump},
       {operationTimeHeating},
       {operationTimeServiceWater},
@@ -185,8 +186,8 @@ object HeatingDAO extends SQLSyntaxSupport[HeatingDAO] {
         column.circuitReturnCurrent -> entity.circuitReturnCurrent,
         column.circuitReturnTarget -> entity.circuitReturnTarget,
         column.tempAmbient -> entity.tempAmbient,
-        column.serviceWaterTarget -> entity.serviceWaterTarget,
         column.serviceWaterCurrent -> entity.serviceWaterCurrent,
+        column.serviceWaterTarget -> entity.serviceWaterTarget,
         column.operationTimePump -> entity.operationTimePump,
         column.operationTimeHeating -> entity.operationTimeHeating,
         column.operationTimeServiceWater -> entity.operationTimeServiceWater,
